@@ -3,9 +3,11 @@ class axil_driver extends uvm_driver #(axil_item);
     `uvm_component_utils(axil_driver)
     
     virtual axil_if vif;
+    uvm_analysis_port #(axil_item) analysis_port;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
+        analysis_port = new("analysis_port", this);
     endfunction
 
     virtual function void build_phase(uvm_phase phase);
@@ -27,8 +29,10 @@ class axil_driver extends uvm_driver #(axil_item);
             case (req.op)
                 AXIL_WRITE: drive_write(req);
                 AXIL_READ:  drive_read(req);
+                default:    `uvm_error("AXIL_DRIVER", "Unknown operation")
             endcase
-            
+
+            analysis_port.write(req);
             seq_item_port.item_done();
         end
     endtask

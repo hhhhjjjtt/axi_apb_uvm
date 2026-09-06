@@ -93,4 +93,40 @@ interface axil_if #(
         input S_AXI_ACLK
     );
 
+    property p_aw_stable_while_waiting;
+        @(posedge S_AXI_ACLK) disable iff (!S_AXI_ARESETN)
+        S_AXI_AWVALID && !S_AXI_AWREADY
+        |=> S_AXI_AWVALID && $stable({S_AXI_AWADDR, S_AXI_AWPROT});
+    endproperty
+
+    property p_w_stable_while_waiting;
+        @(posedge S_AXI_ACLK) disable iff (!S_AXI_ARESETN)
+        S_AXI_WVALID && !S_AXI_WREADY
+        |=> S_AXI_WVALID && $stable({S_AXI_WDATA, S_AXI_WSTRB});
+    endproperty
+
+    property p_ar_stable_while_waiting;
+        @(posedge S_AXI_ACLK) disable iff (!S_AXI_ARESETN)
+        S_AXI_ARVALID && !S_AXI_ARREADY
+        |=> S_AXI_ARVALID && $stable({S_AXI_ARADDR, S_AXI_ARPROT});
+    endproperty
+
+    property p_b_stable_while_waiting;
+        @(posedge S_AXI_ACLK) disable iff (!S_AXI_ARESETN)
+        S_AXI_BVALID && !S_AXI_BREADY
+        |=> S_AXI_BVALID && $stable(S_AXI_BRESP);
+    endproperty
+
+    property p_r_stable_while_waiting;
+        @(posedge S_AXI_ACLK) disable iff (!S_AXI_ARESETN)
+        S_AXI_RVALID && !S_AXI_RREADY
+        |=> S_AXI_RVALID && $stable({S_AXI_RDATA, S_AXI_RRESP});
+    endproperty
+
+    assert property (p_aw_stable_while_waiting);
+    assert property (p_w_stable_while_waiting);
+    assert property (p_ar_stable_while_waiting);
+    assert property (p_b_stable_while_waiting);
+    assert property (p_r_stable_while_waiting);
+
 endinterface
