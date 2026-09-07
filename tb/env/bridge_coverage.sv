@@ -29,7 +29,7 @@ class bridge_coverage extends uvm_component;
         response: coverpoint sampled_resp {
             bins okay   = {2'b00};
             bins slverr = {2'b10};
-            bins other  = default;
+            illegal_bins unsupported = {2'b01, 2'b11};
         }
         strobes: coverpoint sampled_wstrb iff (sampled_op == AXIL_WRITE) {
             bins none    = {4'b0000};

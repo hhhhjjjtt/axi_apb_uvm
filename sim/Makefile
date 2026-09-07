@@ -9,10 +9,19 @@ BUILD_DIR     ?= build/vcs
 SIMV          := $(BUILD_DIR)/simv
 WAVE          ?= waves.fsdb
 FSDB          ?= 1
+COVERAGE      ?= 1
+CM            ?= line+cond+branch+tgl+fsm
 
 VCS           ?= vcs
 VERDI         ?= verdi
+URG           ?= urg
 VERDI_PLI_DIR ?= $(VERDI_HOME)/share/PLI/VCS/LINUX64
+
+COMPILE_COV_DIR := $(BUILD_DIR)/coverage/compile.vdb
+RUN_COV_DIR     := $(BUILD_DIR)/coverage/$(TEST)_$(SEED).vdb
+MERGED_COV_DIR  := $(BUILD_DIR)/coverage/merged_$(TEST)_$(SEED).vdb
+COV_REPORT_DIR  := $(BUILD_DIR)/coverage/report_$(TEST)_$(SEED)
+RUN_LOG         := $(BUILD_DIR)/run_$(TEST).log
 
 VCS_FLAGS := -full64 -sverilog -ntb_opts $(UVM_VERSION) \
 	-timescale=1ns/1ps -top $(TOP) -f filelist.f \
@@ -21,7 +30,14 @@ VCS_FLAGS := -full64 -sverilog -ntb_opts $(UVM_VERSION) \
 ifeq ($(FSDB),1)
 VCS_FLAGS += +define+FSDB -debug_access+all -kdb \
 	-P $(VERDI_PLI_DIR)/novas.tab $(VERDI_PLI_DIR)/pli.a
-RUN_FLAGS += +FSDB_FILE=$(WAVE)
+RUN_FLAGS += +FSDB_FILE=$(BUILD_DIR)/$(WAVE)
+endif
+
+ifeq ($(COVERAGE),1)
+VCS_FLAGS += -cm $(CM) -cm_dir $(COMPILE_COV_DIR) \
+	-cm_hier coverage_hier.cfg
+RUN_FLAGS += -cm $(CM) -cm_dir $(RUN_COV_DIR) \
+	-cm_name $(TEST)_$(SEED)
 endif
 
 ifeq ($(SEED),random)
@@ -30,15 +46,18 @@ else
 SEED_FLAG := +ntb_random_seed=$(SEED)
 endif
 
-.PHONY: all compile run verdi clean help check-verdi
+.PHONY: all compile run coverage verdi verdi-cov clean help check-verdi
 
 all: run
 
 help:
-	@echo "make -f Makefile.vcs run TEST=bridge_basic_test SEED=123"
-	@echo "make -f Makefile.vcs verdi"
-	@echo "make -f Makefile.vcs clean"
+	@echo "make run TEST=bridge_basic_test SEED=123"
+	@echo "make coverage TEST=bridge_random_test SEED=123"
+	@echo "make verdi       # waveform debug"
+	@echo "make verdi-cov   # coverage viewer"
+	@echo "make clean"
 	@echo "Set FSDB=0 to compile and run without Verdi waveform dumping."
+	@echo "Set COVERAGE=0 to disable VCS coverage collection."
 
 check-verdi:
 ifeq ($(FSDB),1)
@@ -51,14 +70,32 @@ ifeq ($(FSDB),1)
 endif
 
 compile: check-verdi
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)/coverage
+ifeq ($(COVERAGE),1)
+	@rm -rf $(COMPILE_COV_DIR)
+endif
 	$(VCS) $(VCS_FLAGS)
 
 run: compile
-	cd $(BUILD_DIR) && ./simv \
+ifeq ($(COVERAGE),1)
+	@rm -rf $(RUN_COV_DIR)
+endif
+	$(SIMV) \
 		+UVM_TESTNAME=$(TEST) $(SEED_FLAG) \
 		+UVM_VERBOSITY=$(UVM_VERBOSITY) $(RUN_FLAGS) \
-		-l run_$(TEST).log
+		-l $(RUN_LOG)
+
+coverage: run
+ifeq ($(COVERAGE),1)
+	@rm -rf $(MERGED_COV_DIR) $(COV_REPORT_DIR)
+	$(URG) -dir $(COMPILE_COV_DIR) -dir $(RUN_COV_DIR) \
+		-dbname $(MERGED_COV_DIR) -report $(COV_REPORT_DIR) \
+		-format both -show tests -show ratios
+	@echo "Coverage report: $(COV_REPORT_DIR)/dashboard.html"
+else
+	@echo "ERROR: coverage target requires COVERAGE=1."
+	@exit 1
+endif
 
 verdi: check-verdi
 	@test -d "$(BUILD_DIR)/simv.daidir" || \
@@ -67,6 +104,9 @@ verdi: check-verdi
 		(echo "ERROR: run the simulation first; $(BUILD_DIR)/$(WAVE) is missing."; exit 1)
 	$(VERDI) -dbdir $(BUILD_DIR)/simv.daidir \
 		-ssf $(BUILD_DIR)/$(WAVE) -top $(TOP)
+
+verdi-cov: coverage
+	$(VERDI) -cov -covdir $(MERGED_COV_DIR)
 
 clean:
 	rm -rf $(BUILD_DIR) csrc simv simv.daidir ucli.key vc_hdrs.h \
