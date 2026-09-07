@@ -42,8 +42,9 @@ make FSDB=0 TEST=bridge_random_test SEED=random
 ```
 
 Useful VCS variables are `TEST`, `SEED`, `UVM_VERBOSITY`, `BUILD_DIR`, `WAVE`,
-`COVERAGE`, `CM`, and `VERDI_PLI_DIR`. If the Verdi PLI files are not under the default
-`$VERDI_HOME/share/PLI/VCS/LINUX64` location, set `VERDI_PLI_DIR` explicitly.
+`COVERAGE`, and `CM`. The VCS W-2024.09/Verdi 2024.09 flow uses the integrated
+`-debug_access` mechanism and therefore does not add the deprecated
+`novas.tab`/`pli.a` options.
 
 ## Coverage reports
 

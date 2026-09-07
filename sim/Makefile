@@ -15,7 +15,6 @@ CM            ?= line+cond+branch+tgl+fsm
 VCS           ?= vcs
 VERDI         ?= verdi
 URG           ?= urg
-VERDI_PLI_DIR ?= $(VERDI_HOME)/share/PLI/VCS/LINUX64
 
 COMPILE_COV_DIR := $(BUILD_DIR)/coverage/compile.vdb
 RUN_COV_DIR     := $(BUILD_DIR)/coverage/$(TEST)_$(SEED).vdb
@@ -28,8 +27,7 @@ VCS_FLAGS := -full64 -sverilog -ntb_opts $(UVM_VERSION) \
 	-Mdir=$(BUILD_DIR)/csrc -o $(SIMV) -l $(BUILD_DIR)/compile.log
 
 ifeq ($(FSDB),1)
-VCS_FLAGS += +define+FSDB -debug_access+all -kdb \
-	-P $(VERDI_PLI_DIR)/novas.tab $(VERDI_PLI_DIR)/pli.a
+VCS_FLAGS += +define+FSDB -debug_access+all -kdb
 RUN_FLAGS += +FSDB_FILE=$(BUILD_DIR)/$(WAVE)
 endif
 
@@ -63,10 +61,6 @@ check-verdi:
 ifeq ($(FSDB),1)
 	@test -n "$(VERDI_HOME)" || \
 		(echo "ERROR: VERDI_HOME is not set. Set it or use FSDB=0."; exit 1)
-	@test -f "$(VERDI_PLI_DIR)/novas.tab" || \
-		(echo "ERROR: novas.tab not found in $(VERDI_PLI_DIR)."; exit 1)
-	@test -f "$(VERDI_PLI_DIR)/pli.a" || \
-		(echo "ERROR: pli.a not found in $(VERDI_PLI_DIR)."; exit 1)
 endif
 
 compile: check-verdi
